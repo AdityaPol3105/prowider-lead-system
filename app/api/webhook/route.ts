@@ -23,7 +23,7 @@ export async function POST(request: Request) {
     }
 
     // Perform database operations within atomic execution locks
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx: any) => {
       // Record signature log to prevent a second execution [cite: 138]
       await tx.webhookEvent.create({ data: { eventId } });
 
