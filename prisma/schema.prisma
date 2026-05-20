@@ -1,0 +1,62 @@
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
+}
+
+model Service {
+  id              String           @id
+  name            String
+  leads           Lead[]
+  allocationState AllocationState?
+}
+
+model Provider {
+  id            Int              @id
+  name          String
+  monthlyQuota  Int              @default(10) 
+  leadsReceived Int              @default(0)
+  assignments   LeadAssignment[]
+}
+
+model Lead {
+  id          String           @id @default(uuid())
+  name        String
+  phone       String
+  city        String
+  serviceId   String
+  description String
+  createdAt   DateTime         @default(now())
+  
+  service     Service          @relation(fields: [serviceId], references: [id])
+  assignments LeadAssignment[]
+
+  @@unique([phone, serviceId]) // Enforces Feature 1 unique constraint rule [cite: 90, 97]
+}
+
+model LeadAssignment {
+  id         String   @id @default(uuid())
+  leadId     String
+  providerId Int
+  assignedAt DateTime @default(now())
+
+  lead     Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  provider Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  @@unique([leadId, providerId]) // Avoid duplicate lead assignments to the same provider [cite: 106]
+}
+
+model AllocationState {
+  serviceId         String  @id
+  lastProviderIndex Int     @default(0) // Tracks round-robin index per service across restarts [cite: 76, 77]
+  service           Service @relation(fields: [serviceId], references: [id])
+}
+
+model WebhookEvent {
+  id          String   @id @default(uuid())
+  eventId     String   @unique // Enforces webhook idempotency [cite: 138]
+  processedAt DateTime @default(now())
+}
